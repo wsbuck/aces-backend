@@ -1,0 +1,17 @@
+{
+  "name": "aces-scrape",
+  "version": "1.0.0",
+  "description": "",
+  "main": "handler.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.471.0",
+    "cheerio": "^1.0.0-rc.3",
+    "moment": "^2.24.0",
+    "node-fetch": "^2.6.0"
+  }
+}

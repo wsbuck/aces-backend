@@ -1,0 +1,44 @@
+service: aces-scrape # NOTE: update this with your service name
+
+provider:
+  name: aws
+  runtime: nodejs10.x
+  region: us-west-2
+  timeout: 90
+  memorySize: 512
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:*
+      Resource: arn:aws:dynamodb:*:*:table/pitchers-table-dev
+  environment:
+    PITCHERS_TABLE: 'pitchers-table-dev'
+
+DynamoDBIamPolicy: 
+  Type: AWS::IAM::Policy
+  # DependsOn: PitchersDynamoDBTable
+  DependsOn: pitchers-table-dev
+  Properties:
+    PolicyName: lambda-dynamodb
+    PolicyDocument:
+      Version: '2012-10-17'
+      Statement:
+        - Effect: Allow
+          Action:
+            - dynamodb:DescribeTable
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          # Resource: arn:aws:dynamodb:*:*:table/PitchersDynamoDBTable
+          Resource: arn:aws:dynamodb:*:*:table/pitchers-table-dev
+    Roles:
+      - Ref: IamRoleLambdaExecution
+
+functions:
+  scrape:
+    handler: handler.scrape
+    events:
+      - schedule: cron(0 9 * * ? *)
