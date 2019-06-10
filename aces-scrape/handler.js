@@ -33,6 +33,8 @@ module.exports.scrape = async (event, context) => {
       let name = playerData['Player'];
       let id = (name.split('')[0] + name.split(' ')[1]).toLowerCase();
       playerData['pitcherId'] = id;
+      playerData['pitcherName'] = name;
+      delete playerData['Player'];
       players.push(playerData);
       // console.log(playerData);
     });
