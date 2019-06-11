@@ -1,32 +1,14 @@
 const cheerio = require('cheerio');
 const AWS = require('aws-sdk');
+const fetch = require('node-fetch');
 
 const PITCHERS_TABLE = process.env.PITCHERS_TABLE;
 const dynamoDb = new AWS.DynamoDB.DocumentClient();
 
-// dynamoDb.delete({
-//   TableName: PITCHERS_TABLE,
-//   Key: {
-//     pitcherId: '*'
-//   }
-// });
+const {scrapeWebsite} = require('./helpers');
 
-const params = {
-  TableName: PITCHERS_TABLE,
-  Item: {
-    pitcherId: 'wbuck',
-    pitcherName: 'William Buck'
-  }
-};
-
-dynamoDb.put(params, (error) => {
-  if (error) {
-    console.log(error);
-  }
-})
-
-module.exports.scrape = (event, context, callback) => {
-  fetch('https://legacy.baseballprospectus.com/pitchfx/leaderboards/')
+module.exports.scrape = async (event, context) => {
+  await fetch('https://legacy.baseballprospectus.com/pitchfx/leaderboards/')
   .then(res => res.text())
   .then(data => {
     const $ = cheerio.load(data);
@@ -43,64 +25,46 @@ module.exports.scrape = (event, context, callback) => {
       let player = $(el).children();
       let playerData = {};
       player.each(function (j, el) {
-        playerData[headerNames[j]] = $(this).text().trim();
+        let value = $(this).text().trim();
+        if (value) {
+          playerData[headerNames[j]] = value;
+        }
+        // playerData[headerNames[j]] = $(this).text().trim();
         // console.log($(this).text().trim());
       });
       let name = playerData['Player'];
       let id = (name.split('')[0] + name.split(' ')[1]).toLowerCase();
       playerData['pitcherId'] = id;
+      playerData['pitcherName'] = name;
+      delete playerData['Player'];
       players.push(playerData);
       // console.log(playerData);
     });
+    return players;
+  })
+  .then(async (players) => {
+    for (let player of players) {
+      dynamoDb.delete({
+        TableName: PITCHERS_TABLE,
+        Key: {
+          pitcherId: player.pitcherId
+        },
+      }, function (err, data) {
+        if (err) {
+          console.log(err);
+        }
+      });
 
-    players.forEach((player) => {
-      // dynamoDb.delete({
-      //   TableName: PITCHERS_TABLE,
-      //   Key: {
-      //     pitcherId: player.playerId
-      //   },
-      //   ConditionExpression: "info.playerId == :val",
-      //   ExpressionAttributeValues: {
-      //     ":val": player.playerId
-      //   }
-      // }, function (err, data) {
-      //   if (err) {
-      //     console.log('error' + error);
-      //   } else {
-      //     console.log('deleted');
-      //   }
-      // })
-
-      // let params = {
-      //   TableName: PITCHERS_TABLE,
-      //   Item: player
-      // };
       let params = {
         TableName: PITCHERS_TABLE,
-        Item: {
-          pitcherId: 'testdude',
-          pitcherName: 'Test Dude',
-        }
+        Item: player
       }
-      // dynamoDb.put(params, function(err, data) {
-      //   if (err) {
-      //     console.log('error' + error);
-      //   } else {
-      //     console.log('sucess');
-      //   }
-      // });
-
-      let putObjectPromise = dynamoDb.put(params).promise();
-      putObjectPromise.then(function (data) {
-        console.log('success')
-      })
-      .catch(function (err) {
-        console.log('error');
-      })
-    });
-
-    // callback(null, players);
-    callback(null, 'hello world');
-  })
-  .catch(callback);
+      const dynamoDbPromise = dynamoDb.put(params).promise();
+      await dynamoDbPromise.then(function (data) {
+        console.log('success');
+      }).catch(function (err) {
+        console.log(err);
+      });
+    };
+  });
 };
