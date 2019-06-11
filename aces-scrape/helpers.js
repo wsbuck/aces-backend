@@ -60,22 +60,17 @@ async function getAllPlayers() {
       pitcherId: player.pitcherId,
       pitcherName: player.pitcherName,
       ALL: player,
-      FA: fourPlayers.find(p => p.playerId == player.playerId),
-      SI: sinkerPlayers.find(p => p.playerId == player.playerId),
-      FC: cutterPlayers.find(p => p.playerId == player.playerId),
-      CU: curvePlayers.find(p => p.playerId == player.playerId),
-      SL: sliderPlayers.find(p => p.playerId == player.playerId),
-      CH: changePlayers.find(p => p.playerId == player.playerId),
+      FA: fourPlayers.find(p => p.pitcherId === player.pitcherId),
+      SI: sinkerPlayers.find(p => p.pitcherId === player.pitcherId),
+      FC: cutterPlayers.find(p => p.pitcherId === player.pitcherId),
+      CU: curvePlayers.find(p => p.pitcherId === player.pitcherId),
+      SL: sliderPlayers.find(p => p.pitcherId === player.pitcherId),
+      CH: changePlayers.find(p => p.pitcherId === player.pitcherId),
     };
     Object.keys(playerObject).forEach(key => {
-      if (key != 'pitcherId' && key != 'pitcherName') {
-        let n = Object.keys(playerObject[key]).length;
-        if (n < 1 || n > 25) {
-          console.log(n + ' ' + key);
-        }
-      }
       if (playerObject[key] === undefined) {
-        delete playerObject[key];
+        // delete playerObject[key];
+        playerObject[key] = {Num: 0};
       }
     });
     playerObjects.push(playerObject);

@@ -45,8 +45,9 @@ app.get('/pitcher/:pitcherId', function (req, res) {
       req.statusCode(400).json({ error: 'Could not get pitcher data' });
     }
     if (result.Item) {
-      const { pitcherId, pitcherName } = result.Item;
-      res.json({ pitcherId, pitcherName });
+      // const { pitcherId, pitcherName } = result.Item;
+      // res.json({ pitcherId, pitcherName });
+      res.json(result.Item);
     } else {
       res.status(404).json({ error: "Pitcher not found "});
     }
