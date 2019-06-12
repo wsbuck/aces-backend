@@ -1,5 +1,8 @@
 service: aces-scrape # NOTE: update this with your service name
 
+custom:
+  bucket: 'aces-backend-dev'
+
 provider:
   name: aws
   runtime: nodejs10.x
@@ -10,9 +13,12 @@ provider:
     - Effect: Allow
       Action:
         - dynamodb:*
-      Resource: arn:aws:dynamodb:*:*:table/pitchers-table-dev
+        - s3:*
+      # Resource: arn:aws:dynamodb:*:*:table/pitchers-table-dev
+      Resource: "*"
   environment:
     PITCHERS_TABLE: 'pitchers-table-dev'
+    BUCKET_NAME: 'aces-backend-dev'
 
 DynamoDBIamPolicy: 
   Type: AWS::IAM::Policy

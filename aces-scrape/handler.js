@@ -1,4 +1,5 @@
-const { getAllPlayers, delFromDb, putToDb } = require('./helpers');
+const { getAllPlayers, publishLastUpdate } = require('./helpers');
+const { delFromDb, putToDb } = require('./helpers');
 
 module.exports.scrape = async (event, context) => {
   await getAllPlayers()
@@ -36,4 +37,6 @@ module.exports.scrape = async (event, context) => {
     await putToDb(putItems);
     })
     .catch(error => console.error(error));
+
+    await publishLastUpdate();
 };

@@ -3,7 +3,23 @@ const fetch = require('node-fetch');
 const AWS = require('aws-sdk');
 
 const PITCHERS_TABLE = process.env.PITCHERS_TABLE;
+const BUCKET_NAME = process.env.BUCKET_NAME;
 const dynamoDb = new AWS.DynamoDB.DocumentClient();
+const S3 = new AWS.S3();
+
+async function publishLastUpdate() {
+  const publishJSON = {
+    lastUpdate: new Date().toLocaleDateString()
+  };
+  const putParams = {
+    Bucket: BUCKET_NAME,
+    Key: 'lastUpdate.json',
+    ContentType: 'application/json',
+    Body: JSON.stringify(publishJSON),
+    ACL: 'public-read'
+  };
+  await S3.upload(putParams).promise();
+}
 
 function percentRank(sortedArr, v) {
   const N = sortedArr.length;
@@ -136,5 +152,6 @@ module.exports = {
   scrapeWebsite,
   getAllPlayers,
   delFromDb,
-  putToDb
+  putToDb,
+  publishLastUpdate
 };
