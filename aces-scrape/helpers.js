@@ -5,6 +5,16 @@ const AWS = require('aws-sdk');
 const PITCHERS_TABLE = process.env.PITCHERS_TABLE;
 const dynamoDb = new AWS.DynamoDB.DocumentClient();
 
+function percentRank(sortedArr, v) {
+  const N = sortedArr.length;
+  for (var i = 0; i < N; i++) {
+    if (v <= sortedArr[i]) {
+      return (i / (N - 1));
+    }
+  }
+  return 1;
+}
+
 async function scrapeWebsite(pitchType) {
   let url = `https://legacy.baseballprospectus.com/pitchfx/leaderboards/index.php?hand=&reportType=pfx&prp=P&month=&year=2019&pitch=${pitchType}&ds=velo&lim=0`;
   const players = [];
@@ -19,6 +29,7 @@ async function scrapeWebsite(pitchType) {
       });
 
       const playerRows = $("#myTable tbody tr");
+      const allWhiffsPct = [];
       // const players = [];
       playerRows.each(function (i, el) {
         let player = $(el).children();
@@ -35,7 +46,22 @@ async function scrapeWebsite(pitchType) {
         playerData['pitcherName'] = name;
         playerData['type'] = pitchType;
         delete playerData['Player'];
+
+        // Calculate [Swings], [Whiffs], and [Whiffs%]
+        playerData['Num'] = parseInt(playerData['Num']);
+        playerData['Swings'] = (parseFloat(playerData['Sw Rate'])
+          / 100.0 * playerData['Num']);
+        playerData['Whiffs'] = (parseFloat(playerData['Swings'])
+          * (parseFloat(playerData['Whf/Sw']) / 100.0));
+        playerData['Whiffs%'] = (playerData['Whiffs'] / playerData['Num']);
+        allWhiffsPct.push(playerData['Whiffs%']);
+
         players.push(playerData);
+      });
+      allWhiffsPct.sort((a, b) => a - b);
+      players.map(playerData => {
+        let whiffPct = playerData['Whiffs%'];
+        playerData['Whiffs%Rank'] = percentRank(allWhiffsPct, whiffPct);
       });
       // console.log(players);
       // return players;
@@ -45,7 +71,6 @@ async function scrapeWebsite(pitchType) {
 
 async function getAllPlayers() {
   const playerObjects = [];
-
   let allPlayers = await scrapeWebsite('ALL');
   let fourPlayers = await scrapeWebsite('FA');
   let sinkerPlayers = await scrapeWebsite('SI');
@@ -54,23 +79,22 @@ async function getAllPlayers() {
   let sliderPlayers = await scrapeWebsite('SL');
   let changePlayers = await scrapeWebsite('CH');
 
-
   for (let player of allPlayers) {
     let playerObject = {
       pitcherId: player.pitcherId,
       pitcherName: player.pitcherName,
-      ALL: player,
-      FA: fourPlayers.find(p => p.pitcherId === player.pitcherId),
-      SI: sinkerPlayers.find(p => p.pitcherId === player.pitcherId),
-      FC: cutterPlayers.find(p => p.pitcherId === player.pitcherId),
-      CU: curvePlayers.find(p => p.pitcherId === player.pitcherId),
-      SL: sliderPlayers.find(p => p.pitcherId === player.pitcherId),
-      CH: changePlayers.find(p => p.pitcherId === player.pitcherId),
+      All: player,
+      Fourseam: fourPlayers.find(p => p.pitcherId === player.pitcherId),
+      Sinker: sinkerPlayers.find(p => p.pitcherId === player.pitcherId),
+      Cutter: cutterPlayers.find(p => p.pitcherId === player.pitcherId),
+      Curve: curvePlayers.find(p => p.pitcherId === player.pitcherId),
+      Slider: sliderPlayers.find(p => p.pitcherId === player.pitcherId),
+      Change: changePlayers.find(p => p.pitcherId === player.pitcherId),
     };
     Object.keys(playerObject).forEach(key => {
       if (playerObject[key] === undefined) {
         // delete playerObject[key];
-        playerObject[key] = {Num: 0};
+        playerObject[key] = { Num: 0 };
       }
     });
     playerObjects.push(playerObject);
