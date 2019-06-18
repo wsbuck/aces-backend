@@ -34,6 +34,7 @@ function percentRank(sortedArr, v) {
 async function scrapeWebsite(pitchType) {
   let url = `https://legacy.baseballprospectus.com/pitchfx/leaderboards/index.php?hand=&reportType=pfx&prp=P&month=&year=2019&pitch=${pitchType}&ds=velo&lim=0`;
   const players = [];
+  let playersFinal = [];
   await fetch(url)
     .then(res => res.text())
     .then(data => {
@@ -82,7 +83,64 @@ async function scrapeWebsite(pitchType) {
       // console.log(players);
       // return players;
     });
-  return players;
+
+  const playerOutcomes = [];
+  let outcomesUrl = `https://legacy.baseballprospectus.com/pitchfx/leaderboards/index.php?hand=&reportType=outcome&prp=P&month=&year=2019&pitch=${pitchType}&ds=velo&lim=0`;
+  await fetch(outcomesUrl)
+    .then(res => res.text())
+    .then(data => {
+      const $ = cheerio.load(data);
+      const headerNamesRow = $('#myTable thead tr th');
+      const headerNames = [];
+      headerNamesRow.each(function (i, el) {
+        headerNames.push($(this).text().trim());
+      });
+
+      const playerRows = $("#myTable tbody tr");
+      // const players = [];
+      playerRows.each(function (i, el) {
+        let player = $(el).children();
+        let playerData = {};
+        player.each(function (j, el) {
+          let value = $(this).text().trim();
+          if (value) {
+            playerData[headerNames[j]] = value;
+          }
+        });
+        let name = playerData['Player'];
+        let id = (name.split('')[0] + name.split(' ')[1]).toLowerCase();
+        playerData['pitcherId'] = id;
+        playerData['pitcherName'] = name;
+        playerData['type'] = pitchType;
+        delete playerData['Player'];
+        // console.log(playerData);
+        playerData['Called S'] = parseInt(playerData['Called S']);
+
+        playerOutcomes.push(playerData);
+      });
+      
+      const allCSW = [];
+      playersFinal = players.map(player => {
+        let outcome = playerOutcomes.find(pOut => {
+          return pOut.pitcherId == player.pitcherId;
+        });
+        if (outcome['Num'] > 0) {
+          outcome['CSW'] = (outcome['Called S'] + player['Whiffs']) / outcome['Num'];
+        } else {
+          outcome['CSW'] = 0;
+        }
+        allCSW.push(outcome['CSW']);
+        return { ...player, ...outcome };
+      });
+
+      allCSW.sort((a, b) => a - b);
+      playersFinal.map(playerData => {
+        let CSW = playerData['CSW'];
+        playerData['CSWRank'] = percentRank(allCSW, CSW);
+      });
+
+    });
+  return playersFinal;
 }
 
 async function getAllPlayers() {
