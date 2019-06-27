@@ -2,6 +2,8 @@ const cheerio = require('cheerio');
 const fetch = require('node-fetch');
 const AWS = require('aws-sdk');
 
+const acesPublished = require('./aces_published.json');
+
 const PITCHERS_TABLE = process.env.PITCHERS_TABLE;
 const BUCKET_NAME = process.env.BUCKET_NAME;
 const dynamoDb = new AWS.DynamoDB.DocumentClient();
@@ -72,6 +74,12 @@ async function scrapeWebsite(pitchType) {
           * (parseFloat(playerData['Whf/Sw']) / 100.0));
         playerData['Whiffs%'] = (playerData['Whiffs'] / playerData['Num']);
         allWhiffsPct.push(playerData['Whiffs%']);
+
+        // ACES
+        let acesIndex = acesPublished.findIndex((p) => {
+          return p.pitcherId == playerData['pitcherId'];
+        });
+        playerData['ACES'] = acesIndex > -1 ? acesPublished[acesIndex][pitchType] : 0;
 
         players.push(playerData);
       });
