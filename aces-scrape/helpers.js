@@ -80,6 +80,9 @@ async function scrapeWebsite(pitchType) {
           return p.pitcherId == playerData['pitcherId'];
         });
         playerData['ACES'] = acesIndex > -1 ? acesPublished[acesIndex][pitchType] : 0;
+        if (pitchType == 'ALL') {
+          playerData['ACES_Value'] = acesIndex > -1 ? acesPublished[acesIndex]['ALL_Value'] : 0;
+        }
 
         players.push(playerData);
       });
